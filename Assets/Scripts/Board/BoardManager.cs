@@ -17,7 +17,10 @@ public class BoardManager : MonoBehaviour
     public float tileSpacing = 1f;
 
     private Tile[,] grid;
-    private bool isSwapping;
+    private bool isResolving;
+    private int cascadeCount;
+    private const int MAX_CASCADES = 20;
+
 			
 
     private void Start()
@@ -45,7 +48,7 @@ public class BoardManager : MonoBehaviour
                 tile.SetPosition(x, y);
 
                 // Assign random sprite
-                Sprite randomSprite = tileSprites[Random.Range(0, tileSprites.Length)];
+                Sprite randomSprite = GetValidSprite(x, y);
                 tile.spriteRenderer.sprite = randomSprite;
 
                 grid[x, y] = tile;
@@ -53,8 +56,38 @@ public class BoardManager : MonoBehaviour
         }
     }
 
+Sprite GetValidSprite(int x, int y)
+{
+    List<Sprite> possibleSprites = new List<Sprite>(tileSprites);
+
+    // Check left
+    if (x >= 2)
+    {
+        Sprite left1 = grid[x - 1, y]?.spriteRenderer.sprite;
+        Sprite left2 = grid[x - 2, y]?.spriteRenderer.sprite;
+
+        if (left1 != null && left1 == left2)
+            possibleSprites.Remove(left1);
+    }
+
+    // Check down
+    if (y >= 2)
+    {
+        Sprite down1 = grid[x, y - 1]?.spriteRenderer.sprite;
+        Sprite down2 = grid[x, y - 2]?.spriteRenderer.sprite;
+
+        if (down1 != null && down1 == down2)
+            possibleSprites.Remove(down1);
+    }
+
+    return possibleSprites[Random.Range(0, possibleSprites.Count)];
+}
+
+
 public void TrySwap(Tile tile, Direction dir)
 {
+    if (isResolving) return;
+
     int targetX = tile.x;
     int targetY = tile.y;
 
@@ -66,12 +99,12 @@ public void TrySwap(Tile tile, Direction dir)
         case Direction.Right: targetX++; break;
     }
 
-    if (!IsInsideBoard(targetX, targetY))
-        return;
+    if (!IsInsideBoard(targetX, targetY)) return;
 
     Tile otherTile = grid[targetX, targetY];
     StartCoroutine(SwapRoutine(tile, otherTile));
 }
+
 
 bool IsInsideBoard(int x, int y)
 {
@@ -92,24 +125,20 @@ bool IsInsideBoard(int x, int y)
 
 IEnumerator SwapRoutine(Tile a, Tile b)
 {
-    if (isSwapping) yield break;
-    isSwapping = true;
+    isResolving = true;
 
     yield return AnimateSwap(a, b);
 
     var matches = MatchFinder.FindMatches(grid, width, height);
 
     if (matches.Count > 0)
-    {
         yield return DestroyMatches(matches);
-    }
     else
-    {
-        yield return AnimateSwap(a, b); // revert
-    }
+        yield return AnimateSwap(a, b);
 
-    isSwapping = false;
+    isResolving = false;
 }
+
 
 
 IEnumerator RevertSwap(Tile a, Tile b)
@@ -175,6 +204,13 @@ IEnumerator AnimateSwap(Tile a, Tile b)
 
 IEnumerator DestroyMatches(List<Tile> matches)
 {
+    cascadeCount++;
+    if (cascadeCount > MAX_CASCADES)
+    {
+        cascadeCount = 0;
+        yield break;
+    }
+
     foreach (Tile t in matches)
     {
         grid[t.x, t.y] = null;
@@ -189,7 +225,10 @@ IEnumerator DestroyMatches(List<Tile> matches)
     var newMatches = MatchFinder.FindMatches(grid, width, height);
     if (newMatches.Count > 0)
         yield return DestroyMatches(newMatches);
+    else
+        cascadeCount = 0;
 }
+
 
 
 IEnumerator ApplyGravity()
