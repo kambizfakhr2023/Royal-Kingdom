@@ -16,11 +16,13 @@ public class Tile : MonoBehaviour
     public SpriteRenderer spriteRenderer;
 
     private Vector3 originalScale;
+    private Color originalColor;
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         originalScale = transform.localScale;
+        originalColor = spriteRenderer.color;
     }
 
     public void SetPosition(int newX, int newY)
@@ -32,10 +34,12 @@ public class Tile : MonoBehaviour
     public void Select()
     {
         transform.localScale = originalScale * 1.1f;
+        spriteRenderer.color = Color.white;
     }
 
     public void Deselect()
     {
         transform.localScale = originalScale;
+        spriteRenderer.color = originalColor;
     }
 }
