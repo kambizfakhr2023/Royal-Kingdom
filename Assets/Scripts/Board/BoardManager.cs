@@ -182,6 +182,98 @@ IEnumerator DestroyMatches(List<Tile> matches)
     }
 
     yield return new WaitForSeconds(0.2f);
+
+    yield return ApplyGravity();
+    yield return SpawnNewTiles();
+
+    var newMatches = MatchFinder.FindMatches(grid, width, height);
+    if (newMatches.Count > 0)
+        yield return DestroyMatches(newMatches);
+}
+
+
+IEnumerator ApplyGravity()
+{
+    bool tileMoved = false;
+
+    for (int x = 0; x < width; x++)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            if (grid[x, y] == null)
+            {
+                for (int above = y + 1; above < height; above++)
+                {
+                    if (grid[x, above] != null)
+                    {
+                        Tile fallingTile = grid[x, above];
+
+                        grid[x, y] = fallingTile;
+                        grid[x, above] = null;
+
+                        fallingTile.SetPosition(x, y);
+                        StartCoroutine(AnimateFall(fallingTile, y));
+
+                        tileMoved = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    yield return new WaitForSeconds(0.25f);
+
+    if (tileMoved)
+        yield return ApplyGravity();
+}
+
+IEnumerator AnimateFall(Tile tile, int targetY)
+{
+    Vector3 startPos = tile.transform.position;
+    Vector3 endPos = new Vector3(startPos.x, targetY + GetBoardOffset().y, startPos.z);
+
+    float time = 0f;
+    float duration = 0.2f;
+
+    while (time < duration)
+    {
+        tile.transform.position = Vector3.Lerp(startPos, endPos, time / duration);
+        time += Time.deltaTime;
+        yield return null;
+    }
+
+    tile.transform.position = endPos;
+}
+
+IEnumerator SpawnNewTiles()
+{
+    for (int x = 0; x < width; x++)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            if (grid[x, y] == null)
+            {
+                Vector2 spawnPos = new Vector2(
+                    x * tileSpacing + GetBoardOffset().x,
+                    height * tileSpacing + GetBoardOffset().y
+                );
+
+                GameObject tileObj = Instantiate(tilePrefab, spawnPos, Quaternion.identity, transform);
+                Tile tile = tileObj.GetComponent<Tile>();
+
+                tile.SetPosition(x, y);
+                tile.spriteRenderer.sprite =
+                    tileSprites[Random.Range(0, tileSprites.Length)];
+
+                grid[x, y] = tile;
+
+                StartCoroutine(AnimateFall(tile, y));
+            }
+        }
+    }
+
+    yield return new WaitForSeconds(0.3f);
 }
 
 }
