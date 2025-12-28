@@ -4,78 +4,59 @@ public class InputManager : MonoBehaviour
 {
     private Tile selectedTile;
     private Vector2 startTouchPos;
-    private bool isDragging;
 
     public float dragThreshold = 0.3f;
+    private BoardManager board;
 
-    void Update()
+    private void Start()
     {
-        HandleInput();
+        board = FindObjectOfType<BoardManager>();
     }
 
-    void HandleInput()
+    void Update()
     {
         if (Input.GetMouseButtonDown(0))
         {
             startTouchPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             SelectTile(startTouchPos);
-            isDragging = true;
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0) && selectedTile != null)
         {
-            if (isDragging && selectedTile != null)
-            {
-                Vector2 endTouchPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                DetectSwipeDirection(startTouchPos, endTouchPos);
-            }
-
+            Vector2 endTouchPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            DetectSwipe(startTouchPos, endTouchPos);
             DeselectTile();
-            isDragging = false;
         }
     }
 
     void SelectTile(Vector2 worldPos)
     {
         RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
+        if (hit.collider == null) return;
 
-        if (hit.collider != null)
-        {
-            selectedTile = hit.collider.GetComponent<Tile>();
-
-            if (selectedTile != null)
-                selectedTile.Select();
-        }
+        selectedTile = hit.collider.GetComponent<Tile>();
+        if (selectedTile != null)
+            selectedTile.Select();
     }
 
     void DeselectTile()
     {
-        if (selectedTile != null)
-            selectedTile.Deselect();
-
+        selectedTile?.Deselect();
         selectedTile = null;
     }
 
-    void DetectSwipeDirection(Vector2 start, Vector2 end)
+    void DetectSwipe(Vector2 start, Vector2 end)
     {
         Vector2 delta = end - start;
+        if (delta.magnitude < dragThreshold) return;
 
-        if (delta.magnitude < dragThreshold)
-            return;
+        Direction dir;
 
         if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
-        {
-            if (delta.x > 0)
-                Debug.Log("Swipe Right");
-            else
-                Debug.Log("Swipe Left");
-        }
+            dir = delta.x > 0 ? Direction.Right : Direction.Left;
         else
-        {
-            if (delta.y > 0)
-                Debug.Log("Swipe Up");
-            else
-                Debug.Log("Swipe Down");
-        }
+            dir = delta.y > 0 ? Direction.Up : Direction.Down;
+
+        board.TrySwap(selectedTile, dir);
     }
 }

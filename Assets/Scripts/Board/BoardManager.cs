@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections;
+
 
 public class BoardManager : MonoBehaviour
 {
@@ -48,6 +50,32 @@ public class BoardManager : MonoBehaviour
         }
     }
 
+public void TrySwap(Tile tile, Direction dir)
+{
+    int targetX = tile.x;
+    int targetY = tile.y;
+
+    switch (dir)
+    {
+        case Direction.Up: targetY++; break;
+        case Direction.Down: targetY--; break;
+        case Direction.Left: targetX--; break;
+        case Direction.Right: targetX++; break;
+    }
+
+    if (!IsInsideBoard(targetX, targetY))
+        return;
+
+    Tile otherTile = grid[targetX, targetY];
+    StartCoroutine(SwapRoutine(tile, otherTile));
+}
+
+bool IsInsideBoard(int x, int y)
+{
+    return x >= 0 && x < width && y >= 0 && y < height;
+}
+
+
     Vector2 GetBoardOffset()
     {
         float boardWidth = (width - 1) * tileSpacing;
@@ -58,4 +86,69 @@ public class BoardManager : MonoBehaviour
             -boardHeight / 2f
         );
     }
+
+IEnumerator SwapRoutine(Tile a, Tile b)
+{
+    Vector3 posA = a.transform.position;
+    Vector3 posB = b.transform.position;
+
+    float time = 0f;
+    float duration = 0.2f;
+
+    // Swap in grid
+    grid[a.x, a.y] = b;
+    grid[b.x, b.y] = a;
+
+    int ax = a.x;
+    int ay = a.y;
+
+    a.SetPosition(b.x, b.y);
+    b.SetPosition(ax, ay);
+
+    while (time < duration)
+    {
+        a.transform.position = Vector3.Lerp(posA, posB, time / duration);
+        b.transform.position = Vector3.Lerp(posB, posA, time / duration);
+        time += Time.deltaTime;
+        yield return null;
+    }
+
+    a.transform.position = posB;
+    b.transform.position = posA;
+
+    // TEMP: always revert (real check comes Day 6)
+    yield return new WaitForSeconds(0.05f);
+    StartCoroutine(RevertSwap(a, b));
+}
+
+IEnumerator RevertSwap(Tile a, Tile b)
+{
+    Vector3 posA = a.transform.position;
+    Vector3 posB = b.transform.position;
+
+    float time = 0f;
+    float duration = 0.2f;
+
+    // Swap back in grid
+    grid[a.x, a.y] = b;
+    grid[b.x, b.y] = a;
+
+    int ax = a.x;
+    int ay = a.y;
+
+    a.SetPosition(b.x, b.y);
+    b.SetPosition(ax, ay);
+
+    while (time < duration)
+    {
+        a.transform.position = Vector3.Lerp(posA, posB, time / duration);
+        b.transform.position = Vector3.Lerp(posB, posA, time / duration);
+        time += Time.deltaTime;
+        yield return null;
+    }
+
+    a.transform.position = posB;
+    b.transform.position = posA;
+}
+	
 }
