@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 
 public class BoardManager : MonoBehaviour
@@ -16,6 +17,8 @@ public class BoardManager : MonoBehaviour
     public float tileSpacing = 1f;
 
     private Tile[,] grid;
+    private bool isSwapping;
+			
 
     private void Start()
     {
@@ -89,37 +92,25 @@ bool IsInsideBoard(int x, int y)
 
 IEnumerator SwapRoutine(Tile a, Tile b)
 {
-    Vector3 posA = a.transform.position;
-    Vector3 posB = b.transform.position;
+    if (isSwapping) yield break;
+    isSwapping = true;
 
-    float time = 0f;
-    float duration = 0.2f;
+    yield return AnimateSwap(a, b);
 
-    // Swap in grid
-    grid[a.x, a.y] = b;
-    grid[b.x, b.y] = a;
+    var matches = MatchFinder.FindMatches(grid, width, height);
 
-    int ax = a.x;
-    int ay = a.y;
-
-    a.SetPosition(b.x, b.y);
-    b.SetPosition(ax, ay);
-
-    while (time < duration)
+    if (matches.Count > 0)
     {
-        a.transform.position = Vector3.Lerp(posA, posB, time / duration);
-        b.transform.position = Vector3.Lerp(posB, posA, time / duration);
-        time += Time.deltaTime;
-        yield return null;
+        yield return DestroyMatches(matches);
+    }
+    else
+    {
+        yield return AnimateSwap(a, b); // revert
     }
 
-    a.transform.position = posB;
-    b.transform.position = posA;
-
-    // TEMP: always revert (real check comes Day 6)
-    yield return new WaitForSeconds(0.05f);
-    StartCoroutine(RevertSwap(a, b));
+    isSwapping = false;
 }
+
 
 IEnumerator RevertSwap(Tile a, Tile b)
 {
@@ -151,4 +142,46 @@ IEnumerator RevertSwap(Tile a, Tile b)
     b.transform.position = posA;
 }
 	
+
+IEnumerator AnimateSwap(Tile a, Tile b)
+{
+    Vector3 posA = a.transform.position;
+    Vector3 posB = b.transform.position;
+
+    float time = 0f;
+    float duration = 0.2f;
+
+    // Swap grid references
+    grid[a.x, a.y] = b;
+    grid[b.x, b.y] = a;
+
+    int ax = a.x;
+    int ay = a.y;
+
+    a.SetPosition(b.x, b.y);
+    b.SetPosition(ax, ay);
+
+    while (time < duration)
+    {
+        a.transform.position = Vector3.Lerp(posA, posB, time / duration);
+        b.transform.position = Vector3.Lerp(posB, posA, time / duration);
+        time += Time.deltaTime;
+        yield return null;
+    }
+
+    a.transform.position = posB;
+    b.transform.position = posA;
+}
+
+IEnumerator DestroyMatches(List<Tile> matches)
+{
+    foreach (Tile t in matches)
+    {
+        grid[t.x, t.y] = null;
+        Destroy(t.gameObject);
+    }
+
+    yield return new WaitForSeconds(0.2f);
+}
+
 }
