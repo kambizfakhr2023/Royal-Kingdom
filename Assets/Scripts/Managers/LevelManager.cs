@@ -41,12 +41,25 @@ public class LevelManager : MonoBehaviour
 
     void Win()
     {
-        UIManager.Instance.ShowWin();
+        int stars = CalculateStars();
+        SaveSystem.SaveLevelResult(1, stars);
+        UIManager.Instance.ShowWin(stars);
     }
+
 
     void CheckLose()
     {
         if (matchesCollected < currentLevel.targetMatches)
             UIManager.Instance.ShowLose();
     }
+
+    int CalculateStars()
+    {
+        if (matchesCollected >= currentLevel.star3)
+            return 3;
+        if (matchesCollected >= currentLevel.star2)
+            return 2;
+        return 1;
+    }
+
 }
