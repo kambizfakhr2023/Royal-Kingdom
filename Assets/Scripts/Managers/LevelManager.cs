@@ -9,6 +9,10 @@ public class LevelManager : MonoBehaviour
     public int remainingMoves;
     public int matchesCollected;
 
+    public int score;
+
+    int levelIndex;
+
     private void Awake()
     {
         Instance = this;
@@ -16,9 +20,11 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
+        //remainingMoves = currentLevel.moves;
+        //matchesCollected = 0;
+        //UIManager.Instance.UpdateMoves(remainingMoves);
+        levelIndex = PlayerPrefs.GetInt("CurrentLevel", 1);
         remainingMoves = currentLevel.moves;
-        matchesCollected = 0;
-        UIManager.Instance.UpdateMoves(remainingMoves);
     }
 
     public void UseMove()
@@ -30,19 +36,29 @@ public class LevelManager : MonoBehaviour
             CheckLose();
     }
 
+    //public void AddMatches(int count)
+    //{
+    //    matchesCollected += count;
+    //    UIManager.Instance.UpdateProgress(matchesCollected, currentLevel.targetMatches);
+
+    //    if (matchesCollected >= currentLevel.targetMatches)
+    //        Win();
+    //}
+
     public void AddMatches(int count)
     {
+        score += count * 10;
         matchesCollected += count;
+
         UIManager.Instance.UpdateProgress(matchesCollected, currentLevel.targetMatches);
 
         if (matchesCollected >= currentLevel.targetMatches)
             Win();
     }
-
     void Win()
     {
         int stars = CalculateStars();
-        SaveSystem.SaveLevelResult(1, stars);
+        SaveSystem.SaveLevelResult(levelIndex, stars);
         UIManager.Instance.ShowWin(stars);
     }
 
