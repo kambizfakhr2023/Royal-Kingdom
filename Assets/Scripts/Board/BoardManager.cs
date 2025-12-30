@@ -1,6 +1,7 @@
-using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 
 public class BoardManager : MonoBehaviour
@@ -228,6 +229,39 @@ public class BoardManager : MonoBehaviour
 
         yield return ApplyGravity();
         yield return SpawnNewTiles();
+
+
+        MatchInfo info = MatchFinder.AnalyzeMatch(matches);
+        if (info.isFour)
+        {
+            Tile origin = matches[0];
+            origin.tileType = Random.value > 0.5f
+                ? TileType.RocketHorizontal
+                : TileType.RocketVertical;
+
+
+            matches.Remove(origin);
+        }
+        if (info.isFive)
+        {
+            Tile origin = matches[0];
+            origin.tileType = TileType.Bomb;
+            matches.Remove(origin);
+        }
+
+        for (int i = 0; i < matches.Count; i++)
+        {
+            Tile t = matches[i];
+
+            if (t.tileType != TileType.Normal)
+            {
+                var extra = BoosterActivator.Activate(t, grid, width, height);
+                foreach (var e in extra)
+                    if (!matches.Contains(e))
+                        matches.Add(e);
+            }
+        }
+
 
         var newMatches = MatchFinder.FindMatches(grid, width, height);
         if (newMatches.Count > 0)

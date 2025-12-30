@@ -1,16 +1,32 @@
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public enum TileType
 {
     Normal,
-    Bomb,
-    Rocket
+    RocketHorizontal,
+    RocketVertical,
+    Bomb
 }
+
+public enum TileColor
+{
+    Red,
+    Blue,
+    Green,
+    Yellow,
+    Purple,
+    Orange,
+    None
+}
+
 
 public class Tile : MonoBehaviour
 {
     [HideInInspector] public int x;
     [HideInInspector] public int y;
+    public TileType type;
+    public TileColor color;
 
     public TileType tileType = TileType.Normal;
     public SpriteRenderer spriteRenderer;
@@ -41,5 +57,13 @@ public class Tile : MonoBehaviour
     {
         transform.localScale = originalScale;
         spriteRenderer.color = originalColor;
+    }
+
+    public void Init(int x, int y, TileType type, TileColor color)
+    {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.color = color;
     }
 }

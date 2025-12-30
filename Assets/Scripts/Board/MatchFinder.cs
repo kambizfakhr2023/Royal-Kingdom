@@ -54,4 +54,18 @@ public class MatchFinder
                 list.Add(t);
         }
     }
+
+    public static MatchInfo AnalyzeMatch(List<Tile> match)
+    {
+        MatchInfo info = new MatchInfo();
+        info.tiles = match;
+
+        if (match.Count == 4)
+            info.isFour = true;
+        else if (match.Count >= 5)
+            info.isFive = true;
+
+        return info;
+    }
+
 }
